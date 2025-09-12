@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
@@ -45,34 +46,42 @@ export default function App() {
     setProfile(null);
   }
 
-  if (token && profile) {
-    return (
-      <div>
-        <h3>Profile</h3>
-        <div>Email: {profile.email}</div>
-        <div>ID: {profile.id}</div>
-        <div>Created: {new Date(profile.created_at).toString()}</div>
-        <button onClick={logout}>Logout</button>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <h3>{mode === 'login' ? 'Login' : 'Register'}</h3>
-      <form onSubmit={submit}>
-        <div>
-          <label>Email: <input value={email} onChange={e => setEmail(e.target.value)} /></label>
+    <div className="app-container">
+      <div className="brand">
+        <h1>VoteX</h1>
+        <small>Login {token && profile ? 'Profile' : ''}</small>
+      </div>
+      {token && profile ? (
+        <div className="profile">
+          <dl>
+            <dt>Email</dt><dd>{profile.email}</dd>
+            <dt>ID</dt><dd>{profile.id}</dd>
+            <dt>Created</dt><dd>{new Date(profile.created_at).toLocaleString()}</dd>
+          </dl>
+          <button onClick={logout}>Logout</button>
         </div>
-        <div>
-          <label>Password: <input type="password" value={password} onChange={e => setPassword(e.target.value)} /></label>
-        </div>
-        <button type="submit">Submit</button>
-      </form>
-      {error && <div>{error}</div>}
-      <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-        Switch to {mode === 'login' ? 'Register' : 'Login'}
-      </button>
+      ) : (
+        <>
+          <h3>{mode === 'login' ? 'Login to VoteX' : 'Create Account'}</h3>
+          <form onSubmit={submit}>
+            <label>Email
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            </label>
+            <label>Password
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            </label>
+            <button type="submit">{mode === 'login' ? 'Login' : 'Register'}</button>
+          </form>
+          {error && <div className="error">{error}</div>}
+          <div className="toggle">
+            <button type="button" className="secondary" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+              {mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
+            </button>
+          </div>
+        </>
+      )}
+      <footer>Future feature: create polls & vote (coming soon).</footer>
     </div>
   );
 }
