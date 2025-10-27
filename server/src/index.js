@@ -16,6 +16,10 @@ let pool;
 
 (async () => {
   pool = await createPool();
+  
+  // Import and set up poll routes after pool is initialized
+  const { default: createPollRoutes } = await import('./routes/polls.js');
+  app.use('/api/polls', auth, createPollRoutes(pool));
 })();
 
 app.get('/api/health', (req, res) => {

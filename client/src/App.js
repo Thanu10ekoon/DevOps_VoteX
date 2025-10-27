@@ -1,87 +1,90 @@
 import React, { useState, useEffect } from 'react';
+import Dashboard from './Dashboard';
 import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 export default function App() {
-  const [mode, setMode] = useState('login');
+  const [view, setView] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState(localStorage.getItem('token') || '');
-  const [profile, setProfile] = useState(null);
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (token) {
-      fetch(`${API_URL}/profile`, { headers: { Authorization: 'Bearer ' + token } })
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => setProfile(data))
-        .catch(() => setProfile(null));
+      setView('dashboard');
     }
   }, [token]);
 
   function submit(e) {
     e.preventDefault();
-    setError('');
-    const path = mode === 'login' ? 'login' : 'register';
+    setMessage('');
+    const path = view === 'login' ? 'login' : 'register';
     fetch(`${API_URL}/${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     }).then(async r => {
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error || 'Error');
-      if (mode === 'login') {
+      if (!r.ok) throw new Error(data.error || data.message || 'Error');
+      if (view === 'login') {
         setToken(data.token);
         localStorage.setItem('token', data.token);
+        setView('dashboard');
       } else {
-        setMode('login');
+        setMessage('Registration successful! Please login.');
+        setView('login');
+        setPassword('');
       }
-    }).catch(err => setError(err.message));
+    }).catch(err => setMessage(err.message));
   }
 
   function logout() {
     setToken('');
     localStorage.removeItem('token');
-    setProfile(null);
+    setView('login');
+    setEmail('');
+    setPassword('');
+  }
+
+  if (view === 'dashboard' && token) {
+    return <Dashboard token={token} onLogout={logout} />;
   }
 
   return (
     <div className="app-container">
       <div className="brand">
         <h1>VoteX</h1>
-        <small>Login {token && profile ? 'Profile' : ''}</small>
+        <small>Create and vote on polls</small>
       </div>
-      {token && profile ? (
-        <div className="profile">
-          <dl>
-            <dt>Email</dt><dd>{profile.email}</dd>
-            <dt>ID</dt><dd>{profile.id}</dd>
-            <dt>Created</dt><dd>{new Date(profile.created_at).toLocaleString()}</dd>
-          </dl>
-          <button onClick={logout}>Logout</button>
-        </div>
-      ) : (
-        <>
-          <h3>{mode === 'login' ? 'Login to VoteX' : 'Create Account'}</h3>
-          <form onSubmit={submit}>
-            <label>Email
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-            </label>
-            <label>Password
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-            </label>
-            <button type="submit">{mode === 'login' ? 'Login' : 'Register'}</button>
-          </form>
-          {error && <div className="error">{error}</div>}
-          <div className="toggle">
-            <button type="button" className="secondary" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-              {mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
-            </button>
-          </div>
-        </>
-      )}
-      <footer>Future feature: create polls & vote (coming soon).</footer>
+
+      <div className="auth-toggle">
+        <button
+          className={view === 'login' ? 'active' : ''}
+          onClick={() => { setView('login'); setMessage(''); }}
+        >
+          Login
+        </button>
+        <button
+          className={view === 'register' ? 'active' : ''}
+          onClick={() => { setView('register'); setMessage(''); }}
+        >
+          Register
+        </button>
+      </div>
+
+      <form onSubmit={submit}>
+        <label>Email
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        </label>
+        <label>Password
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        </label>
+        <button type="submit">{view === 'login' ? 'Login' : 'Register'}</button>
+      </form>
+
+      {message && <div className={message.includes('successful') ? 'success' : 'error'}>{message}</div>}
     </div>
   );
 }
