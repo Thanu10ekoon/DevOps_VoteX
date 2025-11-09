@@ -57,6 +57,31 @@
         group: ubuntu
         mode: '0644'
 
+    - name: Create db directory
+      file:
+        path: "{{ app_directory }}/db"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+      become_user: ubuntu
+
+    - name: Remove wrong init.sql if it's a directory
+      file:
+        path: "{{ app_directory }}/db/init.sql"
+        state: absent
+      ignore_errors: yes
+
+    - name: Copy init.sql
+      copy:
+        src: ../db/init.sql
+        dest: "{{ app_directory }}/db/init.sql"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        force: yes
+      become_user: ubuntu
+
     - name: Check if .env.production exists
       stat:
         path: "../.env.production"
@@ -91,6 +116,13 @@
     - name: Stop existing containers
       community.docker.docker_compose_v2:
         project_src: "{{ app_directory }}"
+        state: absent
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Remove database volume to reinitialize
+      community.docker.docker_volume:
+        name: votex_db_data
         state: absent
       become_user: ubuntu
       ignore_errors: yes
