@@ -3,4 +3,23 @@ npm-debug.log
 dist
 build
 .env
+.env.production
 .DS_Store
+
+# Terraform
+terraform/.terraform
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfvars
+
+# SSH Keys
+*.pem
+*.pub
+id_rsa*
+votex_key*
+
+# Ansible
+ansible/inventory
+*.retry
+

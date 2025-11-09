@@ -1,0 +1,121 @@
+name: Deploy VoteX to AWS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-1
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push client image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/votex-client:latest
+            ${{ secrets.DOCKER_USERNAME }}/votex-client:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-client:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-client:buildcache,mode=max
+
+      - name: Build and push server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/votex-server:latest
+            ${{ secrets.DOCKER_USERNAME }}/votex-server:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-server:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-server:buildcache,mode=max
+
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get EC2 instance IP
+        id: get-ip
+        run: |
+          INSTANCE_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=votex-server" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+          echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+          echo "EC2 Instance IP: $INSTANCE_IP"
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/votex_key
+          chmod 600 ~/.ssh/votex_key
+          ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository --yes --update ppa:ansible/ansible
+          sudo apt-get install -y ansible
+
+      - name: Create Ansible inventory
+        run: |
+          echo "[votex_servers]" > ansible/inventory
+          echo "${{ steps.get-ip.outputs.instance_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_key" >> ansible/inventory
+          cat ansible/inventory
+
+      - name: Update docker-compose.yml with Docker Hub images
+        run: |
+          sed -i "s|build: ./client|image: ${{ secrets.DOCKER_USERNAME }}/votex-client:latest|g" docker-compose.yml
+          sed -i "s|build: ./server|image: ${{ secrets.DOCKER_USERNAME }}/votex-server:latest|g" docker-compose.yml
+          cat docker-compose.yml
+
+      - name: Deploy with Ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: False
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          cd ansible
+          ansible-playbook -i inventory playbook.yml -v
+
+      - name: Deployment Summary
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "🌐 Frontend URL: http://${{ steps.get-ip.outputs.instance_ip }}:3000"
+          echo "🔗 Backend API: http://${{ steps.get-ip.outputs.instance_ip }}:4000"
+          echo "💚 Health Check: http://${{ steps.get-ip.outputs.instance_ip }}:4000/api/health"
