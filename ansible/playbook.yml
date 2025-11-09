@@ -57,6 +57,12 @@
         group: ubuntu
         mode: '0644'
 
+    - name: Check if .env.production exists
+      stat:
+        path: "../.env.production"
+      register: env_file
+      delegate_to: localhost
+
     - name: Copy .env file
       copy:
         src: ../.env.production
@@ -64,7 +70,7 @@
         owner: ubuntu
         group: ubuntu
         mode: '0600'
-      when: lookup('file', '../.env.production', errors='ignore')
+      when: env_file.stat.exists
 
     - name: Login to Docker Hub
       docker_login:
