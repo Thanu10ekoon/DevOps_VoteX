@@ -496,6 +496,9 @@ curl -s "https://hub.docker.com/v2/repositories/YOUR_DOCKER_USERNAME/" | jq .
 ```bash
 cd ansible
 
+# Install Ansible Docker collection (required)
+ansible-galaxy collection install community.docker
+
 # Update inventory with EC2 IP
 echo "[votex_servers]" > inventory
 echo "<EC2_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_key" >> inventory

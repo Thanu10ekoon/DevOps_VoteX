@@ -27,7 +27,6 @@
       pip:
         name:
           - docker
-          - docker-compose
         state: present
 
     - name: Ensure Docker is running
@@ -84,17 +83,17 @@
       become_user: ubuntu
 
     - name: Stop existing containers
-      docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "{{ app_directory }}"
         state: absent
       become_user: ubuntu
       ignore_errors: yes
 
     - name: Start Docker Compose services
-      docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "{{ app_directory }}"
         state: present
-        pull: yes
+        pull: always
       become_user: ubuntu
 
     - name: Wait for services to be healthy

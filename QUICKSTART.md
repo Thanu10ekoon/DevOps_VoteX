@@ -41,11 +41,9 @@ terraform apply  # Type 'yes'
 ### Push to GitHub (Triggers Pipeline)
 ```bash
 cd "/mnt/d/Studies/5th Semester/Modules/DevOps Engineering - EC5207/Day 4 Login in Docker/VoteX"
-git init
-git remote add origin https://github.com/YOUR_USERNAME/DevOps_VoteX.git
 git add .
-git commit -m "Initial commit"
-git push -u origin main
+git commit -m "Fix: Update to docker-compose v2 and t3.micro"
+git push origin main
 ```
 
 ### Connect to EC2
