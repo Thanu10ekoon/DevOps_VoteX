@@ -7,6 +7,8 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - votex-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -24,13 +26,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - votex-network
     ports:
       - "4000:4000"
   client:
     build: ./client
     depends_on:
       - server
+    networks:
+      - votex-network
     ports:
       - "3000:80"
 volumes:
   db_data:
+networks:
+  votex-network:
+    driver: bridge
