@@ -1,0 +1,124 @@
+{
+  "info": {
+    "name": "Polls API",
+    "_postman_id": "d4c733b0-14ff-4f1b-9a7d-9212b2c034c5",
+    "description": "Collection to test Polls API endpoints hosted on http://54.220.183.213:4000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://54.220.183.213:4000/api/health",
+          "protocol": "http",
+          "host": ["54.220.183.213"],
+          "port": "4000",
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://54.220.183.213:4000/api/register",
+          "protocol": "http",
+          "host": ["54.220.183.213"],
+          "port": "4000",
+          "path": ["api", "register"]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://54.220.183.213:4000/api/login",
+          "protocol": "http",
+          "host": ["54.220.183.213"],
+          "port": "4000",
+          "path": ["api", "login"]
+        }
+      }
+    },
+    {
+      "name": "Get Profile (Protected)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "http://54.220.183.213:4000/api/profile",
+          "protocol": "http",
+          "host": ["54.220.183.213"],
+          "port": "4000",
+          "path": ["api", "profile"]
+        }
+      }
+    },
+    {
+      "name": "Polls (Protected)",
+      "item": [
+        {
+          "name": "Get All Polls",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "http://54.220.183.213:4000/api/polls",
+              "protocol": "http",
+              "host": ["54.220.183.213"],
+              "port": "4000",
+              "path": ["api", "polls"]
+            }
+          }
+        },
+        {
+          "name": "Create Poll",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Favorite Programming Language\",\n  \"options\": [\"JavaScript\", \"Python\", \"C++\"]\n}"
+            },
+            "url": {
+              "raw": "http://54.220.183.213:4000/api/polls",
+              "protocol": "http",
+              "host": ["54.220.183.213"],
+              "port": "4000",
+              "path": ["api", "polls"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
