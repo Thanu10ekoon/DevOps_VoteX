@@ -54,37 +54,52 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <div className="brand">
-        <h1>VoteX</h1>
-        <small>Create and vote on polls</small>
+      <div>
+        <div className="brand">
+          <h1>VoteX</h1>
+          <small>Create and vote on polls</small>
+        </div>
+
+        <div className="auth-content">
+          <div className="auth-toggle-container">
+            <div className="auth-toggle">
+              <button
+                className={view === 'login' ? 'active' : ''}
+                onClick={() => { setView('login'); setMessage(''); }}
+              >
+                Login
+              </button>
+              <button
+                className={view === 'register' ? 'active' : ''}
+                onClick={() => { setView('register'); setMessage(''); }}
+              >
+                Register
+              </button>
+            </div>
+          </div>
+
+          <div className="form-container">
+            <form onSubmit={submit}>
+              <input 
+                type="email" 
+                placeholder="Email"
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required 
+              />
+              <input 
+                type="password" 
+                placeholder="Password"
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+              />
+              <button type="submit">{view === 'login' ? 'Login' : 'Register'}</button>
+              {message && <div className={message.includes('successful') ? 'success' : 'error'}>{message}</div>}
+            </form>
+          </div>
+        </div>
       </div>
-
-      <div className="auth-toggle">
-        <button
-          className={view === 'login' ? 'active' : ''}
-          onClick={() => { setView('login'); setMessage(''); }}
-        >
-          Login
-        </button>
-        <button
-          className={view === 'register' ? 'active' : ''}
-          onClick={() => { setView('register'); setMessage(''); }}
-        >
-          Register
-        </button>
-      </div>
-
-      <form onSubmit={submit}>
-        <label>Email
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-        </label>
-        <label>Password
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-        </label>
-        <button type="submit">{view === 'login' ? 'Login' : 'Register'}</button>
-      </form>
-
-      {message && <div className={message.includes('successful') ? 'success' : 'error'}>{message}</div>}
     </div>
   );
 }
