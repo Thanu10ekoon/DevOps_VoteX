@@ -107,15 +107,6 @@
     - name: Reset SSH connection to apply docker group
       meta: reset_connection
 
-    - name: Configure firewall rules (idempotent)
-      shell: |
-        iptables -C INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT
-        iptables -C INPUT -p tcp --dport 3000 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
-        iptables -C INPUT -p tcp --dport 4000 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 4000 -j ACCEPT
-        iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
-      changed_when: false
-      ignore_errors: yes
-
     - name: Create application directory
       file:
         path: "{{ app_dir }}"

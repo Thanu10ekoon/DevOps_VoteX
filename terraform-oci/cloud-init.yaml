@@ -1,7 +1,7 @@
 #cloud-config
 
 # VoteX Server Initialization Script for Oracle Cloud Infrastructure
-# Minimal setup - Ansible will handle Docker installation and firewall config
+# Minimal setup - disable Ubuntu firewall, rely on OCI Security Lists
 
 package_update: true
 package_upgrade: false
@@ -22,15 +22,30 @@ write_files:
       net.ipv4.conf.all.forwarding = 1
     permissions: '0644'
 
-# Apply sysctl settings
+# Apply sysctl settings and disable Ubuntu firewall
 bootcmd:
   - sysctl -p /etc/sysctl.d/99-votex.conf
+  - iptables -F
+  - iptables -X
+  - iptables -P INPUT ACCEPT
+  - iptables -P FORWARD ACCEPT
+  - iptables -P OUTPUT ACCEPT
 
 runcmd:
+  # Disable Ubuntu's iptables permanently - use OCI Security Lists instead
+  - iptables -F
+  - iptables -X
+  - iptables -P INPUT ACCEPT
+  - iptables -P FORWARD ACCEPT
+  - iptables -P OUTPUT ACCEPT
+  - netfilter-persistent flush || true
+  - systemctl stop netfilter-persistent || true
+  - systemctl disable netfilter-persistent || true
+  
   # Create directory for VoteX application
   - mkdir -p /home/ubuntu/votex
   - chown ubuntu:ubuntu /home/ubuntu/votex
 
 # Final message
-final_message: "VoteX OCI server base initialization complete! Ansible will handle Docker setup."
+final_message: "VoteX OCI server ready! Ubuntu firewall disabled, using OCI Security Lists."
 final_message: "VoteX OCI server initialization complete! System ready after $UPTIME seconds. Docker version: $(docker --version)"
