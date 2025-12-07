@@ -1,0 +1,124 @@
+name: Deploy VoteX to Oracle Cloud
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push client image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/votex-client:latest
+            ${{ secrets.DOCKER_USERNAME }}/votex-client:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-client:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-client:buildcache,mode=max
+
+      - name: Build and push server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/votex-server:latest
+            ${{ secrets.DOCKER_USERNAME }}/votex-server:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-server:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/votex-server:buildcache,mode=max
+
+  deploy:
+    name: Deploy to Oracle Cloud
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key for OCI
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_SSH_PRIVATE_KEY }}" > ~/.ssh/votex_oci_key
+          chmod 600 ~/.ssh/votex_oci_key
+          ssh-keyscan -H ${{ secrets.OCI_INSTANCE_IP }} >> ~/.ssh/known_hosts
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository --yes --update ppa:ansible/ansible
+          sudo apt-get install -y ansible
+          
+      - name: Install Ansible Docker collection
+        run: |
+          ansible-galaxy collection install community.docker
+
+      - name: Create Ansible inventory
+        run: |
+          cat > ansible-oci/inventory <<EOF
+          [votex]
+          ${{ secrets.OCI_INSTANCE_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_oci_key ansible_python_interpreter=/usr/bin/python3
+          EOF
+          echo "Inventory file created:"
+          cat ansible-oci/inventory
+
+      - name: Update docker-compose.yml with Docker Hub images
+        run: |
+          sed -i "s|build: ./client|image: ${{ secrets.DOCKER_USERNAME }}/votex-client:latest|g" docker-compose.yml
+          sed -i "s|build: ./server|image: ${{ secrets.DOCKER_USERNAME }}/votex-server:latest|g" docker-compose.yml
+          echo "Updated docker-compose.yml:"
+          cat docker-compose.yml
+
+      - name: Deploy with Ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: 'False'
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          cd ansible-oci
+          ansible-playbook -i inventory playbook.yml -v
+
+      - name: Deployment Summary
+        run: |
+          echo "🎉 Deployment to Oracle Cloud completed successfully!"
+          echo ""
+          echo "📊 Deployment Details:"
+          echo "  🌐 Frontend URL:    http://${{ secrets.OCI_INSTANCE_IP }}:3000"
+          echo "  🔗 Backend API:     http://${{ secrets.OCI_INSTANCE_IP }}:4000"
+          echo "  💚 Health Check:    http://${{ secrets.OCI_INSTANCE_IP }}:4000/api/health"
+          echo ""
+          echo "🐳 Docker Images:"
+          echo "  📦 Client: ${{ secrets.DOCKER_USERNAME }}/votex-client:latest"
+          echo "  📦 Server: ${{ secrets.DOCKER_USERNAME }}/votex-server:latest"
+          echo ""
+          echo "✅ All services are now running on Oracle Cloud Always Free tier!"
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f ~/.ssh/votex_oci_key
+          rm -f ansible-oci/inventory

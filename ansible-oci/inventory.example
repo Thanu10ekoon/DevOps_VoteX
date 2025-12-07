@@ -1,0 +1,8 @@
+# Ansible Inventory for Oracle Cloud Infrastructure
+# Replace YOUR_OCI_INSTANCE_IP with the actual public IP from terraform output
+
+[votex]
+YOUR_OCI_INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_oci_key ansible_python_interpreter=/usr/bin/python3
+
+[votex:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

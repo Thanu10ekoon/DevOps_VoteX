@@ -1,0 +1,73 @@
+# Oracle Cloud Infrastructure Configuration
+# Copy this file to terraform.tfvars and fill in your values
+
+# ============================================
+# OCI Authentication (Required)
+# ============================================
+
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaXXXXXXXXXXXXXXXXXXXX"
+user_ocid        = "ocid1.user.oc1..aaaaaaaXXXXXXXXXXXXXXXXXXXX"
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaaXXXXXXXXXXXXXXXXXXXX"  # Or use tenancy_ocid for root
+
+# ============================================
+# Region Configuration
+# ============================================
+# Available regions:
+# - us-ashburn-1 (US East - Ohio)
+# - us-phoenix-1 (US West - Phoenix)
+# - uk-london-1 (UK South - London)
+# - eu-frankfurt-1 (Germany Central - Frankfurt)
+# - ap-mumbai-1 (India West - Mumbai)
+# - ap-seoul-1 (South Korea North - Seoul)
+# - ap-tokyo-1 (Japan East - Tokyo)
+# - ap-sydney-1 (Australia East - Sydney)
+
+region = "us-ashburn-1"
+
+# ============================================
+# Compute Instance Configuration
+# ============================================
+
+# Always Free Tier Options:
+# 1. VM.Standard.E2.1.Micro (AMD x86)
+#    - 1 OCPU, 1GB RAM
+#    - Good for light workloads
+#    - 2 instances available
+#
+# 2. VM.Standard.A1.Flex (ARM Ampere)
+#    - Up to 4 OCPUs, 24GB RAM total across all instances
+#    - Much more powerful!
+#    - Recommended: 2 OCPUs, 12GB RAM per instance
+#    - 4 instances possible (1 OCPU, 6GB each)
+
+instance_shape = "VM.Standard.E2.1.Micro"  # Change to "VM.Standard.A1.Flex" for better performance
+
+# ============================================
+# SSH Configuration
+# ============================================
+
+ssh_public_key_path = "~/.ssh/votex_oci_key.pub"
+
+# ============================================
+# How to Get These Values:
+# ============================================
+#
+# 1. Tenancy OCID:
+#    - OCI Console > Profile Icon (top right) > Tenancy: <name>
+#    - Copy the OCID
+#
+# 2. User OCID:
+#    - OCI Console > Profile Icon > User Settings
+#    - Copy the OCID
+#
+# 3. Fingerprint:
+#    - OCI Console > Profile Icon > User Settings > API Keys
+#    - Copy the fingerprint after adding your public key
+#
+# 4. Compartment OCID:
+#    - OCI Console > Identity & Security > Compartments
+#    - Copy the OCID (or use tenancy_ocid for root)
+#
+# See OCI_SETUP.md for detailed instructions

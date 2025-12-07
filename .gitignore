@@ -6,20 +6,45 @@ build
 .env.production
 .DS_Store
 
-# Terraform
-terraform/.terraform
-terraform/.terraform.lock.hcl
-terraform/terraform.tfstate
-terraform/terraform.tfstate.backup
-terraform/*.tfvars
+# Terraform - all directories (providers, state, variables)
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfvars
+!**/*.tfvars.example
+
+# Explicit terraform directories
+terraform-oci/.terraform/
+terraform-oci/.terraform.lock.hcl
+terraform-oci/terraform.tfstate
+terraform-oci/terraform.tfstate.backup
+terraform-oci/*.tfvars
+terraform-aws/.terraform/
+terraform-aws/.terraform.lock.hcl
+terraform-aws/terraform.tfstate
+terraform-aws/terraform.tfstate.backup
+terraform-aws/*.tfvars
+
+# Backup folder terraform files (LARGE BINARIES)
+backup/terraform-aws/.terraform/
+backup/terraform-aws/terraform.tfstate
+backup/terraform-aws/terraform.tfstate.backup
+
+# OCI API Keys
+.oci/
+oci_api_key*.pem
 
 # SSH Keys
 *.pem
 *.pub
 id_rsa*
 votex_key*
+votex_oci_key*
 
 # Ansible
 ansible/inventory
+ansible-oci/inventory
+ansible-aws/inventory
 *.retry
 

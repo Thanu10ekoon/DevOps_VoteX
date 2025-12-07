@@ -1,0 +1,43 @@
+AWS DEPLOYMENT FILES BACKUP
+=============================
+Date: December 5, 2025
+
+Original File Locations:
+------------------------
+
+1. terraform-aws/
+   Original location: VoteX/terraform/
+   Contains: AWS EC2 Terraform configuration files
+   Files: main.tf, variables.tf, outputs.tf, terraform.tfvars.example
+
+2. ansible-aws/
+   Original location: VoteX/ansible/
+   Contains: Ansible playbook for AWS EC2 deployment
+   Files: playbook.yml, inventory.example
+
+3. deploy-aws.yml
+   Original location: VoteX/.github/workflows/deploy.yml
+   Contains: GitHub Actions workflow for AWS deployment
+
+To Restore AWS Deployment:
+--------------------------
+
+1. Delete current terraform-oci/, ansible-oci/, and .github/workflows/deploy-oci.yml
+
+2. Move files back:
+   Move-Item "backup\terraform-aws" "terraform" -Force
+   Move-Item "backup\ansible-aws" "ansible" -Force
+   Move-Item "backup\deploy-aws.yml" ".github\workflows\deploy.yml" -Force
+
+3. Update GitHub secrets back to AWS values:
+   - AWS_ACCESS_KEY_ID
+   - AWS_SECRET_ACCESS_KEY
+   - EC2_SSH_PRIVATE_KEY
+
+4. Run terraform commands in terraform/ directory
+
+Notes:
+------
+- These files are for AWS EC2 t3.micro (free tier) deployment
+- Replaced by Oracle Cloud Infrastructure (OCI) Always Free tier
+- Keep this backup in case you want to switch back to AWS
