@@ -10,11 +10,21 @@
     app_dir: "/home/ubuntu/votex"
 
   tasks:
-    - name: Wait for cloud-init to complete
-      command: cloud-init status --wait
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 120
+        delay: 5
+
+    - name: Wait for cloud-init to complete (non-blocking)
+      shell: cloud-init status --wait || cloud-init status
+      register: cloud_init_status
       changed_when: false
       failed_when: false
-      timeout: 300
+      timeout: 60
+
+    - name: Display cloud-init status
+      debug:
+        msg: "Cloud-init status: {{ cloud_init_status.stdout }}"
 
     - name: Update apt cache
       apt:

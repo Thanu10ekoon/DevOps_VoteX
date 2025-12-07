@@ -1,60 +1,19 @@
 #cloud-config
 
 # VoteX Server Initialization Script for Oracle Cloud Infrastructure
-# This script runs on first boot to set up Docker and prepare the server
+# Minimal setup - Ansible will handle Docker installation and firewall config
 
 package_update: true
-package_upgrade: true
+package_upgrade: false
 
 packages:
   - apt-transport-https
   - ca-certificates
   - curl
-  - gnupg
-  - lsb-release
-  - software-properties-common
   - python3
   - python3-pip
-  - git
-  - wget
-  - unzip
 
-# Configure firewall for OCI (Ubuntu uses iptables)
-runcmd:
-  # Wait for cloud-init network to be ready
-  - sleep 10
-  
-  # Install Docker
-  - curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-  - sh /tmp/get-docker.sh
-  - usermod -aG docker ubuntu
-  - systemctl enable docker
-  - systemctl start docker
-  
-  # Install Docker Compose
-  - curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-  - chmod +x /usr/local/bin/docker-compose
-  - ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-  
-  # Configure Ubuntu firewall for OCI
-  # OCI requires explicit iptables rules on Ubuntu instances
-  - iptables -I INPUT 6 -m state --state NEW -p tcp --dport 22 -j ACCEPT
-  - iptables -I INPUT 6 -m state --state NEW -p tcp --dport 3000 -j ACCEPT
-  - iptables -I INPUT 6 -m state --state NEW -p tcp --dport 4000 -j ACCEPT
-  - netfilter-persistent save || apt-get install -y iptables-persistent
-  
-  # Create directory for VoteX application
-  - mkdir -p /home/ubuntu/votex
-  - chown ubuntu:ubuntu /home/ubuntu/votex
-  
-  # Install netfilter-persistent to save iptables rules across reboots
-  - DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
-  - netfilter-persistent save
-  
-  # Clean up
-  - rm -f /tmp/get-docker.sh
-
-# System configuration
+# System configuration for Docker
 write_files:
   - path: /etc/sysctl.d/99-votex.conf
     content: |
@@ -67,5 +26,11 @@ write_files:
 bootcmd:
   - sysctl -p /etc/sysctl.d/99-votex.conf
 
+runcmd:
+  # Create directory for VoteX application
+  - mkdir -p /home/ubuntu/votex
+  - chown ubuntu:ubuntu /home/ubuntu/votex
+
 # Final message
+final_message: "VoteX OCI server base initialization complete! Ansible will handle Docker setup."
 final_message: "VoteX OCI server initialization complete! System ready after $UPTIME seconds. Docker version: $(docker --version)"
