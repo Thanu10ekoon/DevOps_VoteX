@@ -97,25 +97,14 @@
     - name: Reset SSH connection to apply docker group
       meta: reset_connection
 
-    - name: Configure firewall - Check if rules exist
+    - name: Configure firewall rules (idempotent)
       shell: |
-        iptables -L INPUT -n --line-numbers | grep -E "3000|4000" || echo "not_found"
-      register: firewall_check
-      changed_when: false
-      ignore_errors: yes
-
-    - name: Configure firewall - Allow all ports in one atomic operation
-      shell: |
-        # Add rules only if they don't exist
         iptables -C INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT
         iptables -C INPUT -p tcp --dport 3000 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
         iptables -C INPUT -p tcp --dport 4000 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 4000 -j ACCEPT
         iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
-      when: firewall_check.stdout == "not_found"
       changed_when: false
       ignore_errors: yes
-      async: 30
-      poll: 0
 
     - name: Create application directory
       file:
