@@ -35,7 +35,7 @@ variable "region" {
 variable "instance_shape" {
   description = "Shape of the compute instance - Always Free options: VM.Standard.E2.1.Micro (AMD) or VM.Standard.A1.Flex (ARM)"
   type        = string
-  default     = "VM.Standard.E2.1.Micro"
+  default     = "VM.Standard.A1.Flex"
   
   validation {
     condition     = contains(["VM.Standard.E2.1.Micro", "VM.Standard.A1.Flex"], var.instance_shape)
