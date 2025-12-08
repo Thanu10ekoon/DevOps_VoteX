@@ -2,12 +2,12 @@ pipeline {
     agent any
     
     environment {
-        AWS_REGION = 'eu-west-1'
         DOCKER_USERNAME = credentials('docker-username')
         DOCKER_PASSWORD = credentials('docker-password')
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
         EC2_SSH_PRIVATE_KEY = credentials('ec2-ssh-private-key')
+        AWS_DEFAULT_REGION = 'eu-west-1'
         GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
     }
     
@@ -23,13 +23,9 @@ pipeline {
             steps {
                 echo 'Setting up Docker Buildx...'
                 sh '''
-                    docker buildx version || {
-                        echo "Installing Docker Buildx..."
-                        mkdir -p ~/.docker/cli-plugins/
-                        wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.12.0/buildx-v0.12.0.linux-amd64
-                        chmod +x ~/.docker/cli-plugins/docker-buildx
-                    }
-                    docker buildx create --use --name mybuilder || docker buildx use mybuilder
+                    docker buildx version
+                    docker buildx create --use --name mybuilder || true
+                    docker buildx use mybuilder
                     docker buildx inspect --bootstrap
                 '''
             }
@@ -39,7 +35,7 @@ pipeline {
             steps {
                 echo 'Logging into Docker Hub...'
                 sh '''
-                    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                    echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
                 '''
             }
         }
@@ -90,7 +86,7 @@ aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
 EOF
                     cat > ~/.aws/config <<EOF
 [default]
-region = ${AWS_REGION}
+region = ${AWS_DEFAULT_REGION}
 output = json
 EOF
                     chmod 600 ~/.aws/credentials
@@ -124,7 +120,12 @@ EOF
                     mkdir -p ~/.ssh
                     echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/votex_key
                     chmod 600 ~/.ssh/votex_key
-                    ssh-keyscan -H ${INSTANCE_IP} >> ~/.ssh/known_hosts
+                    
+                    # Add EC2 instance to known hosts
+                    ssh-keyscan -H ${INSTANCE_IP} >> ~/.ssh/known_hosts 2>/dev/null || true
+                    
+                    # Test SSH connection
+                    ssh -i ~/.ssh/votex_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@${INSTANCE_IP} "echo 'SSH connection successful'" || echo "Warning: Initial SSH test failed, will retry during deployment"
                 '''
             }
         }
@@ -185,9 +186,17 @@ EOF
             steps {
                 echo 'Deploying application with Ansible...'
                 sh '''
+                    # Ensure SSH key still exists
+                    if [ ! -f ~/.ssh/votex_key ]; then
+                        echo "Error: SSH key not found!"
+                        exit 1
+                    fi
+                    
+                    # Deploy with Ansible
                     export ANSIBLE_HOST_KEY_CHECKING=False
                     cd ansible
-                    ansible-playbook -i inventory playbook.yml -v
+                    ansible-playbook -i inventory playbook.yml -v \
+                        --ssh-common-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
                 '''
             }
         }
