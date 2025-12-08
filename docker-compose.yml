@@ -1,14 +1,6 @@
 services:
   db:
     image: mysql:8.4
-    command: 
-      - --innodb-buffer-pool-size=128M
-      - --max-connections=50
-      - --innodb-log-buffer-size=8M
-    deploy:
-      resources:
-        limits:
-          memory: 400M
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
     volumes:
@@ -22,11 +14,7 @@ services:
       timeout: 3s
       retries: 10
   server:
-    build: ./server
-    deploy:
-      resources:
-        limits:
-          memory: 300M
+    image: ${DOCKER_USERNAME}/votex-server:latest
     environment:
       PORT: 4000
       DB_HOST: db
@@ -34,7 +22,6 @@ services:
       DB_PASSWORD: rootpassword
       DB_NAME: votex
       JWT_SECRET: devsecret
-      NODE_OPTIONS: --max-old-space-size=256
     depends_on:
       db:
         condition: service_healthy
@@ -43,11 +30,7 @@ services:
     ports:
       - "4000:4000"
   client:
-    build: ./client
-    deploy:
-      resources:
-        limits:
-          memory: 150M
+    image: ${DOCKER_USERNAME}/votex-client:latest
     depends_on:
       - server
     networks:
