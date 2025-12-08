@@ -118,8 +118,12 @@ EOF
                 echo 'Setting up SSH key for EC2 access...'
                 sh '''
                     mkdir -p ~/.ssh
-                    echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/votex_key
+                    # Write the key and ensure proper format
+                    printf '%s' "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/votex_key
                     chmod 600 ~/.ssh/votex_key
+                    
+                    # Verify key format
+                    head -1 ~/.ssh/votex_key
                     
                     # Add EC2 instance to known hosts
                     ssh-keyscan -H ${INSTANCE_IP} >> ~/.ssh/known_hosts 2>/dev/null || true
