@@ -6,7 +6,6 @@ pipeline {
         DOCKER_PASSWORD = credentials('docker-password')
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        EC2_SSH_PRIVATE_KEY = credentials('ec2-ssh-private-key')
         AWS_DEFAULT_REGION = 'eu-west-1'
         GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
     }
@@ -116,21 +115,25 @@ EOF
         stage('Setup SSH Key') {
             steps {
                 echo 'Setting up SSH key for EC2 access...'
-                sh '''
-                    mkdir -p ~/.ssh
-                    # Write the key and ensure proper format
-                    printf '%s' "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/votex_key
-                    chmod 600 ~/.ssh/votex_key
-                    
-                    # Verify key format
-                    head -1 ~/.ssh/votex_key
-                    
-                    # Add EC2 instance to known hosts
-                    ssh-keyscan -H ${INSTANCE_IP} >> ~/.ssh/known_hosts 2>/dev/null || true
-                    
-                    # Test SSH connection
-                    ssh -i ~/.ssh/votex_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@${INSTANCE_IP} "echo 'SSH connection successful'" || echo "Warning: Initial SSH test failed, will retry during deployment"
-                '''
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-private-key', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_USER')]) {
+                    sh '''
+                        mkdir -p ~/.ssh
+                        cp "$SSH_KEY_FILE" ~/.ssh/votex_key
+                        chmod 600 ~/.ssh/votex_key
+                        
+                        # Verify key format
+                        echo "Key header:"
+                        head -1 ~/.ssh/votex_key
+                        echo "Key footer:"
+                        tail -1 ~/.ssh/votex_key
+                        
+                        # Add EC2 instance to known hosts
+                        ssh-keyscan -H ${INSTANCE_IP} >> ~/.ssh/known_hosts 2>/dev/null || true
+                        
+                        # Test SSH connection
+                        ssh -i ~/.ssh/votex_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@${INSTANCE_IP} "echo 'SSH connection successful'"
+                    '''
+                }
             }
         }
         
