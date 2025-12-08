@@ -14,7 +14,7 @@ services:
       timeout: 3s
       retries: 10
   server:
-    image: ${DOCKER_USERNAME}/votex-server:latest
+    build: ./server
     environment:
       PORT: 4000
       DB_HOST: db
@@ -30,7 +30,7 @@ services:
     ports:
       - "4000:4000"
   client:
-    image: ${DOCKER_USERNAME}/votex-client:latest
+    build: ./client
     depends_on:
       - server
     networks:
