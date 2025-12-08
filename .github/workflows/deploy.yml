@@ -2,10 +2,12 @@ name: Deploy VoteX to AWS
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 env:
+  AWS_REGION: eu-west-1
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
@@ -64,7 +66,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Get EC2 instance IP
         id: get-ip
@@ -83,10 +85,6 @@ jobs:
           chmod 600 ~/.ssh/votex_key
           ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts
 
-      - name: Test SSH connection
-        run: |
-          ssh -i ~/.ssh/votex_key -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} "echo 'SSH connection successful'"
-
       - name: Install Ansible
         run: |
           sudo apt-get update
@@ -100,12 +98,28 @@ jobs:
 
       - name: Create Ansible inventory
         run: |
-          echo "[votex_servers]" > ansible-aws/inventory
-          echo "${{ steps.get-ip.outputs.instance_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_key ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible-aws/inventory
+          echo "[votex_servers]" > ansible/inventory
+          echo "${{ steps.get-ip.outputs.instance_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_key" >> ansible/inventory
+          cat ansible/inventory
 
-      - name: Run Ansible playbook
+      - name: Update docker-compose.yml with Docker Hub images
         run: |
-          cd ansible-aws
-          ansible-playbook -i inventory playbook.yml -v
+          sed -i "s|build: ./client|image: ${{ secrets.DOCKER_USERNAME }}/votex-client:latest|g" docker-compose.yml
+          sed -i "s|build: ./server|image: ${{ secrets.DOCKER_USERNAME }}/votex-server:latest|g" docker-compose.yml
+          cat docker-compose.yml
+
+      - name: Deploy with Ansible
         env:
+          ANSIBLE_HOST_KEY_CHECKING: False
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          cd ansible
+          ansible-playbook -i inventory playbook.yml -v
+
+      - name: Deployment Summary
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "🌐 Frontend URL: http://${{ steps.get-ip.outputs.instance_ip }}:3000"
+          echo "🔗 Backend API: http://${{ steps.get-ip.outputs.instance_ip }}:4000"
+          echo "💚 Health Check: http://${{ steps.get-ip.outputs.instance_ip }}:4000/api/health"
