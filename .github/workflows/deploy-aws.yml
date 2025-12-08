@@ -83,6 +83,10 @@ jobs:
           chmod 600 ~/.ssh/votex_key
           ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts
 
+      - name: Test SSH connection
+        run: |
+          ssh -i ~/.ssh/votex_key -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.instance_ip }} "echo 'SSH connection successful'"
+
       - name: Install Ansible
         run: |
           sudo apt-get update
@@ -97,7 +101,7 @@ jobs:
       - name: Create Ansible inventory
         run: |
           echo "[votex_servers]" > ansible-aws/inventory
-          echo "${{ steps.get-ip.outputs.instance_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_key" >> ansible-aws/inventory
+          echo "${{ steps.get-ip.outputs.instance_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/votex_key ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible-aws/inventory
 
       - name: Run Ansible playbook
         run: |
