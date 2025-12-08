@@ -21,6 +21,7 @@
           - gnupg
           - lsb-release
           - python3-pip
+          - nginx
         state: present
 
     - name: Install Docker Python library
@@ -102,6 +103,42 @@
         pull: always
       become_user: ubuntu
 
+    - name: Configure Nginx reverse proxy
+      copy:
+        dest: /etc/nginx/sites-available/votex
+        content: |
+          server {
+              listen 80;
+              server_name _;
+              
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+              }
+          }
+        mode: '0644'
+
+    - name: Enable Nginx site
+      file:
+        src: /etc/nginx/sites-available/votex
+        dest: /etc/nginx/sites-enabled/votex
+        state: link
+
+    - name: Remove default Nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+        enabled: yes
+
     - name: Wait for services to be healthy
       wait_for:
         port: "{{ item }}"
@@ -114,6 +151,7 @@
     - name: Display application URLs
       debug:
         msg:
-          - "Frontend: http://{{ ansible_host }}:3000"
+          - "Frontend: http://{{ ansible_host }} (redirects to port 3000)"
+          - "Frontend Direct: http://{{ ansible_host }}:3000"
           - "Backend API: http://{{ ansible_host }}:4000"
           - "Health Check: http://{{ ansible_host }}:4000/api/health"
