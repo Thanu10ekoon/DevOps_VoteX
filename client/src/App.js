@@ -57,7 +57,7 @@ export default function App() {
       <div>
         <div className="brand">
           <h1>VoteX</h1>
-          <small>Create and vote on independent polls</small>
+          <small>Changed for Evaluation on 15.02.2026:2.15 PM</small>
         </div>
 
         <div className="auth-content">
