@@ -1,0 +1,135 @@
+flowchart TB
+    subgraph DEV["👨‍💻 Development Environment"]
+        DEV1[("Developer<br/>Workstation")]
+        IDE["VS Code/IDE"]
+        DEV1 --> IDE
+    end
+
+    subgraph GIT["🗂️ Source Control - GitHub"]
+        REPO[("VoteX Repository<br/>github.com/Thanu10ekoon/DevOps_VoteX")]
+        MAIN["main branch"]
+        REPO --> MAIN
+    end
+
+    subgraph CI["🔧 CI Tool - Jenkins"]
+        JENKINS["Jenkins Server"]
+        subgraph PIPELINE["Jenkins Pipeline Stages"]
+            direction TB
+            P1["1. Checkout Code"]
+            P2["2. Setup Docker Buildx"]
+            P3["3. Login to Docker Hub"]
+            P4["4. Build Client Image"]
+            P5["5. Build Server Image"]
+            P6["6. Push Images"]
+            P7["7. Deploy with Ansible"]
+            P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+        end
+        JENKINS --> PIPELINE
+    end
+
+    subgraph REGISTRY["📦 Container Registry"]
+        DOCKER_HUB[("Docker Hub")]
+        IMG1["votex-client:latest"]
+        IMG2["votex-server:latest"]
+        IMG3["mysql:8.4"]
+        DOCKER_HUB --> IMG1
+        DOCKER_HUB --> IMG2
+        DOCKER_HUB --> IMG3
+    end
+
+    subgraph IAC["🏗️ Infrastructure as Code"]
+        subgraph TERRAFORM["Terraform"]
+            TF_OCI["terraform-oci/"]
+            TF_VCN["VCN Configuration"]
+            TF_COMPUTE["Compute Instance"]
+            TF_SECURITY["Security Lists"]
+            TF_OCI --> TF_VCN
+            TF_OCI --> TF_COMPUTE
+            TF_OCI --> TF_SECURITY
+        end
+        subgraph ANSIBLE["Ansible"]
+            ANS_PLAY["ansible-oci/playbook.yml"]
+            ANS_INV["inventory"]
+            ANS_TASKS["Tasks:<br/>- Install Docker<br/>- Configure Firewall<br/>- Deploy Containers"]
+            ANS_PLAY --> ANS_INV
+            ANS_PLAY --> ANS_TASKS
+        end
+    end
+
+    subgraph CLOUD["☁️ Oracle Cloud Infrastructure (OCI)"]
+        subgraph VCN["Virtual Cloud Network (10.0.0.0/16)"]
+            IGW["Internet Gateway"]
+            subgraph SUBNET["Public Subnet (10.0.1.0/24)"]
+                subgraph VM["VM.Standard.E2.1.Micro<br/>Ubuntu 22.04<br/>IP: 150.136.24.95"]
+                    subgraph DOCKER["🐳 Docker Engine"]
+                        subgraph NETWORK["votex-network (bridge)"]
+                            direction TB
+                            subgraph CLIENT["votex-client Container"]
+                                NGINX["Nginx:80"]
+                                REACT["React App<br/>(Static Build)"]
+                            end
+                            subgraph SERVER["votex-server Container"]
+                                EXPRESS["Express.js:4000"]
+                                API["REST API<br/>/api/*"]
+                                JWT["JWT Auth"]
+                            end
+                            subgraph DB["votex-db Container"]
+                                MYSQL["MySQL:3306"]
+                                TABLES["Tables:<br/>- users<br/>- polls<br/>- poll_options<br/>- votes"]
+                            end
+                        end
+                        VOLUME[("db_data<br/>Volume")]
+                    end
+                end
+            end
+        end
+    end
+
+    subgraph USERS["🌐 End Users"]
+        BROWSER["Web Browser"]
+    end
+
+    %% Connections - Development Flow
+    IDE -->|"git push"| REPO
+    MAIN -->|"Webhook Trigger"| JENKINS
+
+    %% CI/CD Flow
+    JENKINS -->|"Pull Code"| REPO
+    P6 -->|"Push Images"| DOCKER_HUB
+    
+    %% IaC Flow
+    TF_OCI -->|"Provision Infrastructure"| VCN
+    P7 -->|"SSH (Port 22)"| VM
+    ANS_TASKS -->|"docker-compose up"| DOCKER
+
+    %% Image Pull
+    DOCKER -->|"Pull Images"| DOCKER_HUB
+
+    %% Application Connectivity
+    BROWSER -->|"HTTP :3000"| IGW
+    IGW -->|"Route"| NGINX
+    NGINX -->|"Proxy /api/*"| EXPRESS
+    EXPRESS -->|"TCP :3306"| MYSQL
+    MYSQL -->|"Persist Data"| VOLUME
+
+    %% Security Rules
+    IGW -.->|"Allowed Ports:<br/>22, 3000, 4000"| SUBNET
+
+    %% Styling
+    classDef devStyle fill:#e1f5fe,stroke:#01579b
+    classDef gitStyle fill:#fce4ec,stroke:#880e4f
+    classDef ciStyle fill:#fff3e0,stroke:#e65100
+    classDef registryStyle fill:#f3e5f5,stroke:#4a148c
+    classDef iacStyle fill:#e8f5e9,stroke:#1b5e20
+    classDef cloudStyle fill:#e0f2f1,stroke:#004d40
+    classDef containerStyle fill:#fff8e1,stroke:#ff6f00
+    classDef userStyle fill:#fafafa,stroke:#424242
+
+    class DEV devStyle
+    class GIT gitStyle
+    class CI ciStyle
+    class REGISTRY registryStyle
+    class IAC iacStyle
+    class CLOUD cloudStyle
+    class DOCKER containerStyle
+    class USERS userStyle

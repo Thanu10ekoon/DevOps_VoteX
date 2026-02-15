@@ -57,7 +57,7 @@ export default function App() {
       <div>
         <div className="brand">
           <h1>VoteX</h1>
-          <small>Create and vote on polls</small>
+          <small>Create and vote on independent polls</small>
         </div>
 
         <div className="auth-content">

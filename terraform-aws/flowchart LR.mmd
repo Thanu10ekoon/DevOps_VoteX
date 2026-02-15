@@ -1,0 +1,28 @@
+flowchart LR
+GH[GitHub]
+GHA[Jenkins or Backup GitHub Actions Pipeline]
+DH[Docker Hub]
+TF[Terraform]
+U[User]
+
+EC2[AWS EC2]
+ANS[Ansible]
+ANS2[Ansible]
+DEP[Deplyed Frontend, Backend]
+
+U -->|Push Code Changes |GH
+
+GH -->|Triggers|GHA
+
+GHA -->|build and push frontend, backend and database image| DH
+
+
+TF -->|Create Instance with Security Groups| EC2
+
+GHA -->|run ansible| ANS
+ANS -->|ssh| EC2
+DH -->|pull images| EC2
+
+EC2 --> ANS2
+
+ANS2 -->|deploy | DEP
